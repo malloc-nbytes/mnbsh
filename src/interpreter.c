@@ -73,8 +73,7 @@ visit_expr_binary(visitor *v, expr_binary *e)
 static void *
 visit_stmt_vardecl(visitor *v, stmt_vardecl *s)
 {
-        (void)v;
-        (void)s;
+        assert(0 && v && s && "unimplemented");
         return NULL;
 }
 
@@ -109,6 +108,11 @@ static void
 append_value(interpreter_context *ctx, rtv *v)
 {
         char *res;
+
+        if (!v) {
+                array_append(ctx->cmds, NULL);
+                return;
+        }
 
         switch (v->ty->kind) {
         case TYPE_KIND_STR: {
@@ -145,7 +149,7 @@ interpret(parser *p)
                         append_value(v.context, value);
         }
 
-        array_append(((interpreter_context *)v.context)->cmds, NULL);
+        append_value((interpreter_context *)v.context, NULL);
 
         execute(v.context);
 

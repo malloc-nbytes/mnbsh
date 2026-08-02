@@ -20,7 +20,7 @@ str
 str_create(void)
 {
         str s = (str) {
-                .chars = calloc(2, 1),
+                .chars = (char *)calloc(2, 1),
                 .len   = 0,
                 .cap   = 2,
         };

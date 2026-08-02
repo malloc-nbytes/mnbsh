@@ -158,10 +158,12 @@ parse_stmt_vardecl(parser *p)
                 return NULL;
         if (!(id = expect(p, TOKEN_KIND_IDENTIFIER)))
                 return NULL;
+        if (!expect(p, TOKEN_KIND_EQUALS))
+                return NULL;
         if (!(e = parse_expr(p)))
                 return NULL;
-        if (!expect(p, TOKEN_KIND_SEMICOLON))
-                return NULL;
+        /* if (!expect(p, TOKEN_KIND_SEMICOLON)) */
+        /*         return NULL; */
 
         return stmt_vardecl_alloc(ty, id, e);
 }
