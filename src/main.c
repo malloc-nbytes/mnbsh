@@ -1,6 +1,7 @@
 #include "lex.h"
 #include "types.h"
 #include "interpreter.h"
+#include "rtv.h"
 #include "array.h"
 #include "term.h"
 #include "str.h"
@@ -25,7 +26,7 @@ run(void)
 
         init_lexer_interface();
         init_types_interface();
-        init_interpreter_interface();
+        init_rtv_interface();
 
         while (1) {
                 char *src = readline("$ ");
