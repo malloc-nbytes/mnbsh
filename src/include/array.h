@@ -34,6 +34,6 @@
                 (ar).cap = 0; \
         } while (0)
 
-ARRAY_DEFINE(char **, cstr_ar);
+ARRAY_DEFINE(char *, cstr_ar);
 
 #endif // ARRAY_H_INCLUDED

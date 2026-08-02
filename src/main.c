@@ -25,12 +25,15 @@ run(void)
 
         init_lexer_interface();
         init_types_interface();
+        init_interpreter_interface();
 
         while (1) {
                 char *src = readline("$ ");
-                lexer l   = lex_file("stdin", src);
-                parser p  = parse(&l);
-                interpret(&p);
+
+                if (!src)
+                        break;
+
+                lexer l = lex_file("stdin", src);
 
                 if (!l.err.ok) {
                         fprintf(stderr, "%s error: %s\n",
@@ -39,8 +42,11 @@ run(void)
                         exit(1);
                 }
 
-                lexer_dump(&l);
-                lexer_destroy(&l);
+                parser p = parse(&l);
+
+                interpret(&p);
+
+                parser_destroy(&p);
         }
 }
 

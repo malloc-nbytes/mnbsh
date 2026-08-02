@@ -20,7 +20,7 @@ location_ccstr_fmt(location l)
         static char buf[512] = {0};
 
         sprintf(buf, "%s:%zu:%zu:",
-                sv_ccstr(l.path),
+                sv_view(l.path),
                 l.r, l.c);
 
         return buf;

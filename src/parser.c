@@ -59,14 +59,44 @@ parse_primary_expr(parser *p)
                         left->loc = hd->loc;
                 } break;
                 case TOKEN_KIND_IDENTIFIER: {
-                        token *s  = lexer_next(p->l);
-                        left      = (expr *)expr_str_alloc(s);
-                        left->loc = hd->loc;
+                        token *s = lexer_next(p->l);
+                        if (p->infun) {
+                                left      = (expr *)expr_identifier_alloc(s);
+                                left->loc = hd->loc;
+                        } else {
+                                if (left && left->kind == EXPR_KIND_STR) {
+                                        ((expr_str *)left)->s->lx.len += s->lx.len+1;
+                                } else {
+                                        left      = (expr *)expr_str_alloc(s);
+                                        left->loc = hd->loc;
+                                }
+                        }
                 } break;
                 case TOKEN_KIND_INTEGER_LITERAL: {
                         token *i  = lexer_next(p->l);
                         left      = (expr *)expr_int_alloc(i);
                         left->loc = hd->loc;
+                } break;
+                case TOKEN_KIND_STRING_LITERAL: {
+                        token *s = lexer_next(p->l);
+                        if (left && left->kind == EXPR_KIND_STR) {
+                                ((expr_str *)left)->s->lx.len += s->lx.len+3;
+                        } else {
+                                left      = (expr *)expr_str_alloc(s);
+                                left->loc = hd->loc;
+                        }
+                } break;
+                case TOKEN_KIND_MINUS:
+                case TOKEN_KIND_PLUS: {
+                        if (p->infun)
+                                goto done;
+                        token *tok = lexer_next(p->l);
+                        if (left && left->kind == EXPR_KIND_STR) {
+                                ((expr_str *)left)->s->lx.len += tok->lx.len+1;
+                        } else {
+                                left      = (expr *)expr_str_alloc(tok);
+                                left->loc = hd->loc;
+                        }
                 } break;
                 default:
                         goto done;
@@ -78,9 +108,26 @@ parse_primary_expr(parser *p)
 }
 
 static expr *
-parse_assignment_expr(parser *p)
+parse_additive_expr(parser *p)
 {
         expr *lhs = parse_primary_expr(p);
+        token *cur = PEEK(*p);
+        while (cur && (cur->kind == TOKEN_KIND_PLUS
+                       || cur->kind == TOKEN_KIND_MINUS)) {
+                token *op = lexer_next(p->l);
+                expr *rhs = parse_primary_expr(p);
+                expr_binary *bin = expr_binary_alloc(lhs, op, rhs);
+                ((expr *)bin)->loc = lhs->loc;
+                lhs = (expr *)bin;
+                cur = PEEK(*p);
+        }
+        return lhs;
+}
+
+static expr *
+parse_assignment_expr(parser *p)
+{
+        expr *lhs = parse_additive_expr(p);
 
         token *cur = PEEK(*p);
         if (!cur) return lhs;
@@ -106,7 +153,7 @@ static type *
 parse_type(parser *p)
 {
         token *ty = expect(p, TOKEN_KIND_TYPE);
-        if (!strcmp(sv_ccstr(ty->lx), TYPE_INT))
+        if (!strcmp(sv_view(ty->lx), TYPE_INT))
                 return (type *)g_type_int;
         return NULL;
 }
@@ -158,6 +205,7 @@ parse(lexer *l)
                 .l      = l,
                 .cursor = 0,
                 .stmts  = array_empty(),
+                .infun  = 0,
                 .err    = {
                         .ok  = 1,
                         .msg = (str) {0},
@@ -176,4 +224,23 @@ parse(lexer *l)
         }
 
         return p;
+}
+
+void
+parser_destroy(parser *p)
+{
+        p->cursor = 0;
+        p->infun  = 0;
+
+        if (!p->err.ok)
+                str_destroy(&p->err.msg);
+
+        p->err.ok = 0;
+
+        for (size_t i = 0; i < p->stmts.len; ++i) {
+                // TODO: free all statements
+        }
+
+        lexer_destroy(p->l);
+        array_destroy(p->stmts);
 }

@@ -45,6 +45,7 @@ extern type_str *g_type_str;
 
 int istype(const char *s);
 
+// *Must* call this function before anything else
 void init_types_interface(void);
 
 #endif // TYPES_H_INCLUDED

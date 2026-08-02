@@ -12,6 +12,7 @@ typedef struct {
         lexer *l;
         size_t cursor;
         stmtp_ar stmts;
+        int infun;
         struct {
                 int ok;
                 str msg;
@@ -20,5 +21,6 @@ typedef struct {
 } parser;
 
 parser parse(lexer *l);
+void parser_destroy(parser *p);
 
 #endif // PARSER_H_INCLUDED

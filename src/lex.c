@@ -133,7 +133,7 @@ lexer_dump(const lexer *l)
 {
         for (size_t i = 0; i < l->tokens.len; ++i) {
                 const token *t  = l->tokens.data[i];
-                const char  *lx = sv_ccstr(t->lx);
+                const char  *lx = sv_view(t->lx);
                 const char  *k  = token_kind_ccstr(t->kind);
 
                 printf("<lx=%s, k=%s, ", lx, k);
@@ -221,6 +221,7 @@ lexer_destroy(lexer *l)
         for (size_t i = 0; i < l->tokens.len; ++i)
                 token_free(l->tokens.data[i]);
 
+        array_destroy(l->tokens);
         free(l->src);
         free(l->path);
 }
@@ -289,9 +290,9 @@ lex_file(const char *path,
                 } else if (ch == '_' || isalpha(ch)) {
                         size_t len = consume_while(src+i, isident);
                         token *t = token_alloc(src+i, len, TOKEN_KIND_IDENTIFIER, r, c, l.path);
-                        if (iskwd(sv_ccstr(t->lx)))
+                        if (iskwd(sv_view(t->lx)))
                                 t->kind = TOKEN_KIND_KEYWORD;
-                        if (istype(sv_ccstr(t->lx)))
+                        if (istype(sv_view(t->lx)))
                                 t->kind = TOKEN_KIND_TYPE;
                         append(&l, t);
                         c += len;
@@ -332,3 +333,4 @@ lex_file(const char *path,
         append(&l, token_alloc("EOF", 3, TOKEN_KIND_EOF, r, c, l.path));
         return l;
 }
+

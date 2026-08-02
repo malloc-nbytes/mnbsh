@@ -14,7 +14,7 @@ sv_from(const char *s,
 }
 
 const char *
-sv_ccstr(sv view)
+sv_view(sv view)
 {
         assert(view.len < 512-1);
 

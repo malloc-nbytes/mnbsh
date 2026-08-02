@@ -10,6 +10,6 @@ typedef struct {
 } sv;
 
 sv          sv_from(const char *s, ssize_t len);
-const char *sv_ccstr(sv view);
+const char *sv_view(sv view);
 
 #endif // SV_H_INCLUDED
