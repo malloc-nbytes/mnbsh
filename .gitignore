@@ -58,6 +58,7 @@ dkms.conf
 *.in
 
 # Debug Program Name
+main
 
 # Outputs
 /src/bin
