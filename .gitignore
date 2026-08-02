@@ -56,3 +56,9 @@ dkms.conf
 
 # Input Files
 *.in
+
+# Debug Program Name
+
+# Outputs
+/src/bin
+/src/obj
