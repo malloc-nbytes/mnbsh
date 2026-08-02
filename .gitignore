@@ -63,3 +63,8 @@ main
 # Outputs
 /src/bin
 /src/obj
+
+# Precompile
+/src/config.mk
+/src/include/config.h
+
