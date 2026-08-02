@@ -59,44 +59,33 @@ parse_primary_expr(parser *p)
                         left->loc = hd->loc;
                 } break;
                 case TOKEN_KIND_IDENTIFIER: {
+                        if (left)
+                                goto done;
                         token *s = lexer_next(p->l);
                         if (p->infun) {
                                 left      = (expr *)expr_identifier_alloc(s);
                                 left->loc = hd->loc;
                         } else {
-                                if (left && left->kind == EXPR_KIND_STR) {
-                                        ((expr_str *)left)->s->lx.len += s->lx.len+1;
-                                } else {
-                                        left      = (expr *)expr_str_alloc(s);
-                                        left->loc = hd->loc;
-                                }
-                        }
-                } break;
-                case TOKEN_KIND_INTEGER_LITERAL: {
-                        token *i  = lexer_next(p->l);
-                        left      = (expr *)expr_int_alloc(i);
-                        left->loc = hd->loc;
-                } break;
-                case TOKEN_KIND_STRING_LITERAL: {
-                        token *s = lexer_next(p->l);
-                        if (left && left->kind == EXPR_KIND_STR) {
-                                ((expr_str *)left)->s->lx.len += s->lx.len+3;
-                        } else {
                                 left      = (expr *)expr_str_alloc(s);
                                 left->loc = hd->loc;
                         }
                 } break;
-                case TOKEN_KIND_MINUS:
-                case TOKEN_KIND_PLUS: {
-                        if (p->infun)
+                case TOKEN_KIND_INTEGER_LITERAL: {
+                        if (left)
                                 goto done;
-                        token *tok = lexer_next(p->l);
-                        if (left && left->kind == EXPR_KIND_STR) {
-                                ((expr_str *)left)->s->lx.len += tok->lx.len+1;
-                        } else {
-                                left      = (expr *)expr_str_alloc(tok);
-                                left->loc = hd->loc;
-                        }
+                        token *i  = lexer_next(p->l);
+                        if (p->infun)
+                                left = (expr *)expr_int_alloc(i);
+                        else
+                                left = (expr *)expr_str_alloc(i);
+                        left->loc = hd->loc;
+                } break;
+                case TOKEN_KIND_STRING_LITERAL: {
+                        if (left)
+                                goto done;
+                        token *s = lexer_next(p->l);
+                        left      = (expr *)expr_str_alloc(s);
+                        left->loc = hd->loc;
                 } break;
                 default:
                         goto done;
@@ -114,12 +103,12 @@ parse_additive_expr(parser *p)
         token *cur = PEEK(*p);
         while (cur && (cur->kind == TOKEN_KIND_PLUS
                        || cur->kind == TOKEN_KIND_MINUS)) {
-                token *op = lexer_next(p->l);
-                expr *rhs = parse_primary_expr(p);
-                expr_binary *bin = expr_binary_alloc(lhs, op, rhs);
+                token       *op    = lexer_next(p->l);
+                expr        *rhs   = parse_primary_expr(p);
+                expr_binary *bin   = expr_binary_alloc(lhs, op, rhs);
                 ((expr *)bin)->loc = lhs->loc;
-                lhs = (expr *)bin;
-                cur = PEEK(*p);
+                lhs                = (expr *)bin;
+                cur                = PEEK(*p);
         }
         return lhs;
 }

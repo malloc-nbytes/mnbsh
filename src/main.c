@@ -33,6 +33,8 @@ run(void)
                 if (!src)
                         break;
 
+                add_history(src);
+
                 lexer l = lex_file("stdin", src);
 
                 if (!l.err.ok) {

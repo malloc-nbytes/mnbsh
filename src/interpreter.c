@@ -10,6 +10,7 @@
 #include <sys/wait.h>
 
 #define BITSET(ctx, f)   (((ctx).bits & (f)) != 0)
+#define BITUNSET(ctx, f) (((ctx).bits & (f)) == 0)
 #define SETBIT(ctx, f)   ((ctx).bits |= (f))
 #define UNSETBIT(ctx, f) ((ctx).bits &= ~(f))
 
@@ -23,6 +24,16 @@ typedef struct {
         uint32_t bits;
         cstr_ar  cmds;
 } interpreter_context;
+
+static void append_value(interpreter_context *ctx, rtv *v);
+
+static void
+rtv_str_prepend(rtv_str *v, const char *s)
+{
+        assert(s);
+        for (size_t i = 0; s[i]; ++i)
+                str_insert(&v->s, i, s[i]);
+}
 
 rtv_void *
 rtv_void_alloc(void)
@@ -66,6 +77,7 @@ static void *
 visit_expr_str(visitor *v, expr_str *e)
 {
         (void)v;
+        //printf("STR: %s\n", sv_view(e->s->lx));
         return rtv_str_alloc(e->s->lx);
 }
 
@@ -79,9 +91,21 @@ visit_expr_int(visitor *v, expr_int *e)
 static void *
 visit_expr_binary(visitor *v, expr_binary *e)
 {
-        (void)v;
-        (void)e->lhs->accept(e->lhs, v);
-        (void)e->rhs->accept(e->rhs, v);
+        interpreter_context *ctx = (interpreter_context *)v->context;
+        rtv   *lhs = e->lhs->accept(e->lhs, v);
+        token *op  = e->op;
+        rtv   *rhs = e->rhs->accept(e->rhs, v);
+
+        if (BITUNSET(*ctx, IN_FUNCTION)) {
+                assert(rhs->ty->kind == TYPE_KIND_STR);
+                append_value(ctx, lhs);
+                rtv_str_prepend((rtv_str *)rhs, sv_view(op->lx));
+                append_value(ctx, rhs);
+        } else {
+                assert(0 && "unimplemented");
+        }
+
+
         return NULL;
 }
 
