@@ -11,9 +11,13 @@ typedef struct {
         size_t    current;
 } scope;
 
-scope scope_create(void);
-void  scope_push(scope *s);
-void  scope_insert(scope *s, const char *id, rtv *value);
-int   scope_contains(scope *s, const char *id);
+scope     scope_create(void);
+void      scope_push(scope *s);
+void      scope_insert(scope *s, const char *id, rtv *value);
+int       scope_contains(scope *s, const char *id);
+
+// Call scope_contains() before calling this function.
+variable *scope_get(scope *, const char *id);
+void scope_print(const scope *);
 
 #endif // SCOPE_H_INCLUDED

@@ -144,6 +144,8 @@ parse_type(parser *p)
         token *ty = expect(p, TOKEN_KIND_TYPE);
         if (!strcmp(sv_view(ty->lx), TYPE_INT))
                 return (type *)g_type_int;
+        if (!strcmp(sv_view(ty->lx), TYPE_STR))
+                return (type *)g_type_str;
         return NULL;
 }
 

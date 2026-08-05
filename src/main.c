@@ -27,6 +27,7 @@ run(void)
         init_lexer_interface();
         init_types_interface();
         init_rtv_interface();
+        init_interpreter_interface();
 
         while (1) {
                 char *src = readline("$ ");

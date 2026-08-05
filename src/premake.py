@@ -13,7 +13,7 @@ CFLAGS = [
     "-Iinclude", "-ggdb", "-O2", "-Wall", "-Wextra", "-std=gnu17",
     "-Wshadow", "-Wconversion", "-Wsign-conversion", "-Wunused", "-Wuninitialized",
     "-Wstrict-prototypes", "-Wmissing-prototypes", "-Wmissing-declarations", "-Wno-missing-braces",
-    "-Wredundant-decls", "-Wfloat-equal", "-Wdouble-promotion", "-Wformat=2",
+    "-Wredundant-decls", "-Wfloat-equal", "-Wdouble-promotion", "-Wformat=2", "-Wno-sign-conversion"
     "-Wformat-truncation", "-Wformat-overflow", "-Wundef", "-Wcast-align",
     "-Wcast-qual", "-Wpointer-arith", "-fstack-protector-strong", "-D_FORTIFY_SOURCE=2",
     "-pipe", "-march=native", "-D_DEFAULT_SOURCE", "-D_XOPEN_SOURCE=600",

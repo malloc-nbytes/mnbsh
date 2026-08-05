@@ -31,7 +31,8 @@
         void mapname##_destroy(mapname *map); \
         void mapname##_insert(mapname *map, ktype k, vtype v); \
         int mapname##_contains(mapname *map, ktype k); \
-        vtype *mapname##_get(mapname *map, ktype k)
+        vtype *mapname##_get(mapname *map, ktype k); \
+        void   mapname##_print(mapname *map)
 
 #define MAP_IMPL(ktype, vtype, mapname) \
         mapname \
@@ -96,6 +97,19 @@
                         it = it->n; \
                 } \
                 return NULL; \
+        } \
+        \
+        void \
+        mapname##_print(mapname *map) \
+        { \
+                for (size_t i = 0; i < map->tbl.cap; ++i) { \
+                        __##mapname##_node *it = map->tbl.data[i]; \
+                        while (it) { \
+                                if (it) \
+                                        printf("Key: %s\n", it->k); \
+                                it = it->n; \
+                        } \
+                } \
         }
 
 #endif // MAP_H_INCLUDED

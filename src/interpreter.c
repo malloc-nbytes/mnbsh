@@ -1,5 +1,13 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+
 #include "interpreter.h"
 #include "rtv.h"
+#include "rtv-void.h"
+#include "rtv-str.h"
+#include "rtv-int.h"
+#include "rtv-list.h"
+#include "scope.h"
 #include "visitor.h"
 #include "mem.h"
 #include "error.h"
@@ -17,47 +25,63 @@
 
 enum {
         IN_FUNCTION = 1 << 0,
+        IN_VARDECL  = 1 << 1,
 };
 
 typedef struct {
         uint32_t bits;
         cstr_ar  cmds;
-} interpreter_context;
+} int_context;
 
-static void append_value(interpreter_context *ctx, rtv *v);
+scope g_scope;
+
+static void append_value(int_context *ctx, rtv *v);
 
 static void *
-visit_expr_identifier(visitor         *v,
-                      expr_identifier *e)
+interpret_expr_identifier(visitor         *v,
+                          expr_identifier *e)
 {
-        assert(0 && v && e);
-        return NULL;
+        (void)v;
+
+        const char *id   = sv_view(e->id->lx);
+        variable *var;
+
+        if (!(var = scope_get(&g_scope, id)))
+                fatal("variable `%s' is not defined", id);
+
+        return var->value;
 }
 
 static void *
-visit_expr_str(visitor *v, expr_str *e)
+interpret_expr_str(visitor *v, expr_str *e)
 {
         (void)v;
-        //printf("STR: %s\n", sv_view(e->s->lx));
         return rtv_str_alloc(e->s->lx);
 }
 
 static void *
-visit_expr_int(visitor *v, expr_int *e)
+interpret_expr_int(visitor *v, expr_int *e)
 {
         (void)v;
         return rtv_int_alloc(e->i->lx);
 }
 
 static void *
-visit_expr_binary(visitor *v, expr_binary *e)
+interpret_expr_binary(visitor *v, expr_binary *e)
 {
-        interpreter_context *ctx = (interpreter_context *)v->context;
+        int_context *ctx = (int_context *)v->context;
         rtv   *lhs = e->lhs->accept(e->lhs, v);
         token *op  = e->op;
         rtv   *rhs = e->rhs->accept(e->rhs, v);
 
-        if (BITUNSET(*ctx, IN_FUNCTION)) {
+        if (BITSET(*ctx, IN_VARDECL)) {
+                assert(lhs->ty->kind == TYPE_KIND_STR);
+                assert(rhs->ty->kind == TYPE_KIND_STR);
+                rtv_str_append((rtv_str *)lhs, " ");
+                rtv_str_append((rtv_str *)lhs, sv_view(op->lx));
+                rtv_str_append((rtv_str *)lhs, ((rtv_str *)rhs)->s.chars);
+                return lhs;
+        } else if (BITUNSET(*ctx, IN_FUNCTION)) {
                 assert(rhs->ty->kind == TYPE_KIND_STR);
                 append_value(ctx, lhs);
                 rtv_str_prepend((rtv_str *)rhs, sv_view(op->lx));
@@ -71,23 +95,39 @@ visit_expr_binary(visitor *v, expr_binary *e)
 }
 
 static void *
-visit_stmt_vardecl(visitor *v, stmt_vardecl *s)
+interpret_stmt_vardecl(visitor *v, stmt_vardecl *s)
 {
-        assert(0 && v && s && "unimplemented");
+        int_context *ctx   = (int_context *)v->context;
+
+        SETBIT(*ctx, IN_VARDECL);
+        rtv *value = s->e->accept(s->e, v);
+        UNSETBIT(*ctx, IN_VARDECL);
+
+        scope_insert(&g_scope, sv_view(s->id->lx), value);
+
         return NULL;
 }
 
 static void *
-visit_stmt_expr(visitor *v, stmt_expr *s)
+interpret_stmt_expr(visitor *v, stmt_expr *s)
 {
         (void)v;
         return (rtv *)s->e->accept(s->e, v);
 }
 
 static void
-execute(interpreter_context *ctx)
+execute(int_context *ctx)
 {
         pid_t pid;
+
+        #if 1
+        for (size_t i = 0; ctx->cmds.data[i]; ++i) {
+                if (i != 0) putchar(' ');
+                printf("%s", ctx->cmds.data[i]);
+        }
+        if (ctx->cmds.len > 1)
+                putchar('\n');
+        #endif
 
         pid = fork();
 
@@ -105,7 +145,7 @@ execute(interpreter_context *ctx)
 }
 
 static void
-append_value(interpreter_context *ctx, rtv *v)
+append_value(int_context *ctx, rtv *v)
 {
         char *res;
 
@@ -129,29 +169,37 @@ append_value(interpreter_context *ctx, rtv *v)
 interpret_result
 interpret(parser *p)
 {
-        interpreter_context ctx = (interpreter_context) {
+        int_context ctx = (int_context) {
                 .bits = 0x0000,
                 .cmds = array_empty(),
         };
 
         visitor v = visitor_create((void *)&ctx,
-                                   visit_expr_identifier,
-                                   visit_expr_str,
-                                   visit_expr_int,
-                                   visit_expr_binary,
-                                   visit_stmt_vardecl,
-                                   visit_stmt_expr);
+                                   interpret_expr_identifier,
+                                   interpret_expr_str,
+                                   interpret_expr_int,
+                                   interpret_expr_binary,
+                                   interpret_stmt_vardecl,
+                                   interpret_stmt_expr);
 
         for (size_t i = 0; i < p->stmts.len; ++i) {
-                stmt *s = p->stmts.data[i];
-                rtv *value = (rtv *)s->accept(s, &v);
+                stmt *s     = p->stmts.data[i];
+                rtv  *value = (rtv *)s->accept(s, &v);
                 if (value)
                         append_value(v.context, value);
         }
 
-        append_value((interpreter_context *)v.context, NULL);
+        append_value((int_context *)v.context, NULL);
 
         execute(v.context);
 
         return INTERPRET_RESULT_OK;
 }
+
+void
+init_interpreter_interface(void)
+{
+        g_scope = scope_create();
+}
+
+#pragma GCC diagnostic pop

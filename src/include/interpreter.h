@@ -11,5 +11,6 @@ typedef enum {
 } interpret_result;
 
 interpret_result interpret(parser *p);
+void             init_interpreter_interface(void);
 
 #endif // INTERPRETER_H_INCLUDED

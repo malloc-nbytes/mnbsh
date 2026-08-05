@@ -27,6 +27,8 @@ scope_create(void)
 
         scope_push(&s);
 
+        s.current = 0;
+
         return s;
 }
 
@@ -41,18 +43,32 @@ scope_push(scope *s)
 void
 scope_insert(scope *s, const char *id, rtv *value)
 {
-        varmap_insert(&s->scopes.data[s->current],
-                      id, variable_alloc(id, value));
+        variable *var = variable_alloc(id, value);
+
+        varmap_insert(&s->scopes.data[s->current], var->id.chars, var);
 }
 
 int
 scope_contains(scope *s, const char *id)
 {
+        return scope_get(s, id) != NULL;
+}
+
+variable *
+scope_get(scope *s, const char *id)
+{
         for (int i = (int)s->current; i >= 0; --i) {
                 varmap *m = &s->scopes.data[i];
                 if (varmap_contains(m, id))
-                        return 1;
+                        return *varmap_get(m, id);
         }
+        return NULL;
+}
 
-        return 0;
+void
+scope_print(const scope *s)
+{
+        for (int i = (int)s->current; i >= 0; --i) {
+                varmap_print(&s->scopes.data[i]);
+        }
 }

@@ -20,25 +20,25 @@ istype(const char *s)
         return 0;
 }
 
-static type_void *
+type_void *
 type_void_alloc(void)
 {
         return g_type_void;
 }
 
-static type_int *
+type_int *
 type_int_alloc(void)
 {
         return g_type_int;
 }
 
-static type_str *
+type_str *
 type_str_alloc(void)
 {
         return g_type_str;
 }
 
-static type_list *
+type_list *
 type_list_alloc(type *inner)
 {
         type_list *ty;

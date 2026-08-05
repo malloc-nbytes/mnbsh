@@ -48,4 +48,9 @@ int istype(const char *s);
 // *Must* call this function before anything else
 void init_types_interface(void);
 
+type_void *type_void_alloc(void);
+type_int  *type_int_alloc(void);
+type_str  *type_str_alloc(void);
+type_list *type_list_alloc(type *inner);
+
 #endif // TYPES_H_INCLUDED
