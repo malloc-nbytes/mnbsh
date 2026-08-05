@@ -43,8 +43,10 @@ interpret_expr_identifier(visitor         *v,
 {
         (void)v;
 
-        const char *id   = sv_view(e->id->lx);
-        variable *var;
+        const char *id;
+        variable   *var;
+
+        id = sv_view(e->id->lx);
 
         if (!(var = scope_get(&g_scope, id)))
                 fatal("variable `%s' is not defined", id);
@@ -121,6 +123,27 @@ interpret_stmt_expr(visitor *v, stmt_expr *s)
         return (rtv *)s->e->accept(s->e, v);
 }
 
+static void *
+interpret_stmt_return(visitor *v, stmt_return *s)
+{
+        assert(0 && v && s && "interpret_stmt_return: unimplemented");
+        return NULL;
+}
+
+static void *
+interpret_stmt_blk(visitor *v, stmt_blk *s)
+{
+        assert(0 && v && s && "unimplemented");
+        return NULL;
+}
+
+static void *
+interpret_stmt_func(visitor *v, stmt_func *s)
+{
+        assert(0 && v && s && "interpret_stmt_func: unimplemented");
+        return NULL;
+}
+
 static void
 execute(int_context *ctx)
 {
@@ -193,7 +216,10 @@ interpret(parser *p)
                                    interpret_expr_int,
                                    interpret_expr_binary,
                                    interpret_stmt_vardecl,
-                                   interpret_stmt_expr);
+                                   interpret_stmt_expr,
+                                   interpret_stmt_return,
+                                   interpret_stmt_blk,
+                                   interpret_stmt_func);
 
         for (size_t i = 0; i < p->stmts.len; ++i) {
                 stmt *s     = p->stmts.data[i];

@@ -1,10 +1,13 @@
 #include "parser.h"
+#include "kwds.h"
 #include "error.h"
 
 #include <assert.h>
 #include <string.h>
 
 #define PEEK(p) lexer_peek((p).l)
+
+static stmt *parse_stmt(parser *p);
 
 static void
 seterr(parser   *p,
@@ -26,6 +29,7 @@ expect(parser *p, token_kind k)
                        array_back(p->l->tokens)->loc);
                 return NULL;
         }
+
         if (t->kind != k) {
                 seterr(p, str_from_fmt("expected `%s' but got `%s'",
                                        token_kind_ccstr(k),
@@ -33,7 +37,28 @@ expect(parser *p, token_kind k)
                        t->loc);
                 return NULL;
         }
+
         return lexer_next(p->l);
+}
+
+static token *
+expectkw(parser *p, const char *kwd)
+{
+        token *t;
+
+        if (!(t = expect(p, TOKEN_KIND_KEYWORD))) {
+                seterr(p, str_from_fmt("expected `%s' but got `%s'", kwd, token_kind_ccstr(t->kind)),
+                       array_back(p->l->tokens)->loc);
+        }
+
+        if (strcmp(sv_view(t->lx), kwd)) {
+                seterr(p, str_from_fmt("expected keyword `%s' but got `%s'",
+                                       kwd, token_kind_ccstr(t->kind)),
+                       t->loc);
+                return NULL;
+        }
+
+        return t;
 }
 
 static expr *
@@ -141,7 +166,10 @@ parse_expr(parser *p)
 static type *
 parse_type(parser *p)
 {
-        token *ty = expect(p, TOKEN_KIND_TYPE);
+        token *ty;
+
+        if (!(ty = expect(p, TOKEN_KIND_TYPE)))
+                return NULL;
         if (!strcmp(sv_view(ty->lx), TYPE_INT))
                 return (type *)g_type_int;
         if (!strcmp(sv_view(ty->lx), TYPE_STR))
@@ -181,11 +209,119 @@ parse_stmt_expr(parser *p)
         return stmt_expr_alloc(e);
 }
 
+static stmt_return *
+parse_stmt_return(parser *p)
+{
+        const token *t;
+        expr *e;
+
+        if (!(t = expectkw(p, KWD_RETURN)))
+                return NULL;
+
+        e = parse_expr(p);
+
+        return stmt_return_alloc(e, t->loc);
+}
+
+static stmt_blk *
+parse_stmt_blk(parser *p)
+{
+        const token *start = expect(p, TOKEN_KIND_LCURLY);
+        stmtp_ar ar        = array_empty();
+
+        while (PEEK(*p)->kind != TOKEN_KIND_RCURLY) {
+                stmt *s;
+
+                if (!(s = parse_stmt(p)))
+                        return NULL;
+
+                array_append(ar, s);
+        }
+
+        if (!expect(p, TOKEN_KIND_RCURLY))
+                return NULL;
+
+        return stmt_blk_alloc(ar, start->loc);
+}
+
+static int
+parse_function_params(parser *p, param_ar *ar)
+{
+        array_zero(*ar);
+
+        while (PEEK(*p)->kind == TOKEN_KIND_TYPE) {
+                type *ty;
+                token *id;
+
+                if (!(ty = parse_type(p)))
+                        return 0;
+
+                if (!(id = expect(p, TOKEN_KIND_IDENTIFIER)))
+                        return 0;
+
+                array_append(*ar, ((param) { .ty = ty, .id = id }));
+        }
+
+        return 1;
+}
+
+static stmt_func *
+parse_stmt_func(parser *p)
+{
+        type *rty;
+        token *id;
+        param_ar params;
+        stmt_blk *body;
+
+        if (!expectkw(p, KWD_FUNC))
+                return NULL;
+
+        if (!(rty = parse_type(p)))
+                return NULL;
+
+        if (!(id = expect(p, TOKEN_KIND_IDENTIFIER)))
+                return NULL;
+
+        if (!expect(p, TOKEN_KIND_LPAREN))
+                return NULL;
+
+        if (!parse_function_params(p, &params))
+                return NULL;
+
+        if (!expect(p, TOKEN_KIND_RPAREN))
+                return NULL;
+
+        if (!(body = parse_stmt_blk(p)))
+                return NULL;
+
+        return stmt_func_alloc(rty, id, params, body);
+}
+
+static stmt *
+parse_stmt_keyword(parser *p)
+{
+        const token *hd  = PEEK(*p);
+        const char  *kwd = sv_view(hd->lx);
+
+        if (!strcmp(kwd, KWD_RETURN))
+                return (stmt *)parse_stmt_return(p);
+        if (!strcmp(kwd, KWD_FUNC))
+                return (stmt *)parse_stmt_func(p);
+
+        seterr(p, str_from_fmt("illegal keyword `%s'", kwd), hd->loc);
+
+        return NULL;
+}
+
 static stmt *
 parse_stmt(parser *p)
 {
+        if (PEEK(*p)->kind == TOKEN_KIND_KEYWORD)
+                return parse_stmt_keyword(p);
         if (PEEK(*p)->kind == TOKEN_KIND_TYPE)
                 return (stmt *)parse_stmt_vardecl(p);
+        if (PEEK(*p)->kind == TOKEN_KIND_LCURLY)
+                return (stmt *)parse_stmt_blk(p);
         return (stmt *)parse_stmt_expr(p);
 }
 

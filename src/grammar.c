@@ -79,3 +79,42 @@ stmt_expr_alloc(expr *e)
         s->base.accept  = accept_stmt_expr;
         return s;
 }
+
+stmt_return *
+stmt_return_alloc(expr *e, location loc)
+{
+        stmt_return *s  = (stmt_return *)alloc(sizeof(*s));
+        s->e            = e;
+        s->base.kind    = STMT_KIND_RETURN;
+        s->base.loc     = loc;
+        s->base.accept  = accept_stmt_return;
+        return s;
+}
+
+stmt_blk *
+stmt_blk_alloc(stmtp_ar stmts, location loc)
+{
+        stmt_blk *s     = (stmt_blk *)alloc(sizeof(*s));
+        s->stmts        = stmts;
+        s->base.kind    = STMT_KIND_BLK;
+        s->base.loc     = loc;
+        s->base.accept  = accept_stmt_blk;
+        return s;
+}
+
+stmt_func *
+stmt_func_alloc(type     *rty,
+                token    *id,
+                param_ar  params,
+                stmt_blk *body)
+{
+        stmt_func *s    = (stmt_func *)alloc(sizeof(*s));
+        s->rty          = rty;
+        s->id           = id;
+        s->params       = params;
+        s->body         = body;
+        s->base.kind    = STMT_KIND_FUNC;
+        s->base.loc     = id->loc;
+        s->base.accept  = accept_stmt_func;
+        return s;
+}

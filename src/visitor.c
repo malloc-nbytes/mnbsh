@@ -8,7 +8,10 @@ visitor_create(void                      *context,
                visit_expr_binary_sig     visit_expr_binary,
 
                visit_stmt_vardecl_sig visit_stmt_vardecl,
-               visit_stmt_expr_sig    visit_stmt_expr)
+               visit_stmt_expr_sig    visit_stmt_expr,
+               visit_stmt_return_sig  visit_stmt_return,
+               visit_stmt_blk_sig     visit_stmt_blk,
+               visit_stmt_func_sig    visit_stmt_func)
 {
         return (visitor) {
                 .context               = context,
@@ -19,6 +22,9 @@ visitor_create(void                      *context,
 
                 .visit_stmt_vardecl    = visit_stmt_vardecl,
                 .visit_stmt_expr       = visit_stmt_expr,
+                .visit_stmt_return     = visit_stmt_return,
+                .visit_stmt_blk        = visit_stmt_blk,
+                .visit_stmt_func       = visit_stmt_func,
         };
 }
 
@@ -70,3 +76,26 @@ accept_stmt_expr(stmt *s, visitor *v)
         return NULL;
 }
 
+void *
+accept_stmt_return(stmt *s, visitor *v)
+{
+        if (v->visit_stmt_return)
+                return v->visit_stmt_return(v, (stmt_return *)s);
+        return NULL;
+}
+
+void *
+accept_stmt_blk(stmt *s, visitor *v)
+{
+        if (v->visit_stmt_blk)
+                return v->visit_stmt_blk(v, (stmt_blk *)s);
+        return NULL;
+}
+
+void *
+accept_stmt_func(stmt *s, visitor *v)
+{
+        if (v->visit_stmt_func)
+                return v->visit_stmt_func(v, (stmt_func *)s);
+        return NULL;
+}

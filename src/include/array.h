@@ -25,6 +25,13 @@
 
 #define array_empty() {0}
 
+#define array_zero(ar) \
+        do { \
+                (ar).data = NULL; \
+                (ar).len = 0; \
+                (ar).cap = 0; \
+        } while (0)
+
 #define array_back(ar) (ar).data[(ar).len-1]
 
 #define array_destroy(ar) \
