@@ -77,10 +77,16 @@ interpret_expr_binary(visitor *v, expr_binary *e)
         if (BITSET(*ctx, IN_VARDECL)) {
                 assert(lhs->ty->kind == TYPE_KIND_STR);
                 assert(rhs->ty->kind == TYPE_KIND_STR);
-                rtv_str_append((rtv_str *)lhs, " ");
-                rtv_str_append((rtv_str *)lhs, sv_view(op->lx));
-                rtv_str_append((rtv_str *)lhs, ((rtv_str *)rhs)->s.chars);
-                return lhs;
+
+                rtv_str_prepend((rtv_str *)rhs, sv_view(op->lx));
+
+                type_list *ty  = type_list_alloc((type *)type_str_alloc());
+                rtvp_ar values = array_empty();
+
+                array_append(values, lhs);
+                array_append(values, rhs);
+
+                return (void *)rtv_list_alloc(values, ty);
         } else if (BITUNSET(*ctx, IN_FUNCTION)) {
                 assert(rhs->ty->kind == TYPE_KIND_STR);
                 append_value(ctx, lhs);
@@ -154,9 +160,16 @@ append_value(int_context *ctx, rtv *v)
                 return;
         }
 
+        res = NULL;
+
         switch (v->ty->kind) {
         case TYPE_KIND_STR: {
                 res = strdup(((rtv_str *)v)->s.chars);
+        } break;
+        case TYPE_KIND_LIST: {
+                rtv_list *lst = (rtv_list *)v;
+                for (size_t i = 0; i < lst->values.len; ++i)
+                        append_value(ctx, lst->values.data[i]);
         } break;
         default:
                 fatal("unhandled type '%d'", v->ty->kind);
